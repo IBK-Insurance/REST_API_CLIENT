@@ -36,10 +36,9 @@ def fetch_reviews(app_id: str, target_date: date, lang: str = 'ko', country: str
     # print(f"Initializing Selenium to fetch {url}...")
 
     chrome_options = Options()
-    chrome_options.add_argument("--headless") # Run in background
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    # Add fake user agent to avoid being blocked slightly less
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
     try:
@@ -53,11 +52,6 @@ def fetch_reviews(app_id: str, target_date: date, lang: str = 'ko', country: str
 
     try:
         driver.get(url)
-        
-        # 1. Click "See all reviews" button
-        # print("Looking for 'See all reviews' button...")
-        
-        # Wait for button
         wait = WebDriverWait(driver, 10)
         
         buttons = driver.find_elements(By.CSS_SELECTOR, "button.VfPpkd-Bz112c-LgbsSe.yHy1rc.eT1oJ.QDwDD.mN1ivc.VxpoF")
@@ -70,31 +64,23 @@ def fetch_reviews(app_id: str, target_date: date, lang: str = 'ko', country: str
                 review_button = btn
                 break
         
-        if not review_button:
-            if buttons:
-                review_button = buttons[-1] # Fallback to last button of this class
+        if not review_button and buttons:
+            review_button = buttons[-1]
 
         if review_button:
-            # print(f"Clicking button: {review_button.text or 'Icon Button'}")
             driver.execute_script("arguments[0].click();", review_button)
-            
-            # 2. Wait for Modal
-            # print("Waiting for modal...")
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.jgIq1")))
-            
-            # Allow some time for content load
             time.sleep(2) 
             
-            # 3. Find Review Items
             review_items = driver.find_elements(By.CSS_SELECTOR, "div.RHo1pe")
             
             for item in review_items:
                 try:
-                    # Date: .bp9Aid
+                    # Date
                     date_elem = item.find_element(By.CSS_SELECTOR, ".bp9Aid")
                     date_text = date_elem.text
                     
-                    # Content: .h3YV2d
+                    # Content
                     content_text = ""
                     try:
                         content_elem = item.find_element(By.CSS_SELECTOR, ".h3YV2d")
@@ -102,31 +88,40 @@ def fetch_reviews(app_id: str, target_date: date, lang: str = 'ko', country: str
                     except:
                         content_text = item.text
 
-
-                    # Username
+                    # Username (Fixed by User)
                     user_name = "User"
                     try:
-                        user_elem = item.find_element(By.CSS_SELECTOR, ".X43Kjb")
+                        user_elem = item.find_element(By.CSS_SELECTOR, ".X5PpBb")
                         user_name = user_elem.text
+                    except:
+                        pass
+
+                    # Score (Improved by User)
+                    score = 5
+                    try:
+                        score_elem = item.find_element(By.CSS_SELECTOR, ".iXRFPc")
+                        aria_label = score_elem.get_attribute("aria-label") or ""
+                        m = re.search(r'만점에\s*(\d+)\s*개', aria_label)
+                        if m:
+                            score = int(m.group(1))
+                        else:
+                            all_nums = re.findall(r'(\d+)\s*개', aria_label)
+                            if all_nums:
+                                score = int(all_nums[-1])
                     except:
                         pass
 
                     review_date = parse_relative_date(date_text)
                     
-                    # [User Request] Removed scraping logs
-                    # print(f"[Scraped Item] Date: {review_date} ({date_text}) | User: {user_name} | Content: {content_text[:50]}...")
-
                     if review_date >= target_date:
                         parsed_reviews.append({
                             'userName': user_name,
                             'at': datetime.combine(review_date, datetime.min.time()),
-                            'score': 5,
+                            'score': score,
                             'content': content_text
                         })
                 except Exception as e:
-                    # Silence parsing errors unless critical
                     continue
-
         else:
             print("Button not found.")
 

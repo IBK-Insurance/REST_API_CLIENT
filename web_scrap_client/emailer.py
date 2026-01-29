@@ -14,7 +14,7 @@ def format_reviews_html(reviews, target_date):
         stars = "★" * r['score'] + "☆" * (5 - r['score'])
         html += f"""
         <div style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-            <strong>{r['userName']}</strong> ({r['at'].strftime('%Y-%m-%d %H:%M')})<br>
+            <strong>{r['userName']}</strong> ({r['at'].strftime('%Y-%m-%d')})<br>
             <span style="color: #f39c12; font-size: 1.2em;">{stars}</span><br>
             <p>{r['content']}</p>
         </div>
