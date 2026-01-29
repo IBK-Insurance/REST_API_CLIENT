@@ -1,0 +1,6 @@
+google-play-scraper
+python-dotenv
+requests
+beautifulsoup4
+selenium
+webdriver-manager
